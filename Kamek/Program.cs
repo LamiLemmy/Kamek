@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -70,8 +70,9 @@ namespace Kamek
             // Parse the command line arguments and do cool things!
             var modules = new List<Elf>();
             uint? baseAddress = null;
-            string outputKamekPath = null, outputRiivPath = null, outputDolphinPath = null, outputGeckoPath = null, outputCodePath = null;
+            string outputKamekPath = null, outputRiivPath = null, outputDolphinPath = null, outputGeckoPath = null, outputARPath = null, outputCodePath = null;
             string inputDolPath = null, outputDolPath = null;
+            string outputMapPath = null;
             var externals = new Dictionary<string, uint>();
             VersionInfo versions = null;
             var selectedVersions = new List<String>();
@@ -97,12 +98,16 @@ namespace Kamek
                         outputDolphinPath = arg.Substring(16);
                     else if (arg.StartsWith("-output-gecko="))
                         outputGeckoPath = arg.Substring(14);
+                    else if (arg.StartsWith("-output-ar="))
+                        outputARPath = arg.Substring(11);
                     else if (arg.StartsWith("-output-code="))
                         outputCodePath = arg.Substring(13);
                     else if (arg.StartsWith("-input-dol="))
                         inputDolPath = arg.Substring(11);
                     else if (arg.StartsWith("-output-dol="))
                         outputDolPath = arg.Substring(12);
+                    else if (arg.StartsWith("-output-map="))
+                        outputMapPath = arg.Substring(12);
                     else if (arg.StartsWith("-externals="))
                         ReadExternals(externals, arg.Substring(11));
                     else if (arg.StartsWith("-versions="))
@@ -134,7 +139,7 @@ namespace Kamek
                 Console.WriteLine("no input files specified");
                 return;
             }
-            if (outputKamekPath == null && outputRiivPath == null && outputDolphinPath == null && outputGeckoPath == null && outputCodePath == null && outputDolPath == null)
+            if (outputKamekPath == null && outputRiivPath == null && outputDolphinPath == null && outputGeckoPath == null && outputARPath == null && outputCodePath == null && outputDolPath == null)
             {
                 Console.WriteLine("no output path(s) specified");
                 return;
@@ -154,6 +159,7 @@ namespace Kamek
                 ambiguousOutputPath |= (outputRiivPath != null && !outputRiivPath.Contains("$KV$"));
                 ambiguousOutputPath |= (outputDolphinPath != null && !outputDolphinPath.Contains("$KV$"));
                 ambiguousOutputPath |= (outputGeckoPath != null && !outputGeckoPath.Contains("$KV$"));
+                ambiguousOutputPath |= (outputARPath != null && !outputARPath.Contains("$KV$"));
                 ambiguousOutputPath |= (outputCodePath != null && !outputCodePath.Contains("$KV$"));
                 ambiguousOutputPath |= (outputDolPath != null && !outputDolPath.Contains("$KV$"));
                 if (ambiguousOutputPath)
@@ -193,6 +199,8 @@ namespace Kamek
                     File.WriteAllText(outputDolphinPath.Replace("$KV$", version.Key), kf.PackDolphin());
                 if (outputGeckoPath != null)
                     File.WriteAllText(outputGeckoPath.Replace("$KV$", version.Key), kf.PackGeckoCodes());
+                if (outputARPath != null)
+                    File.WriteAllText(outputARPath.Replace("$KV$", version.Key), kf.PackActionReplayCodes());
                 if (outputCodePath != null)
                     File.WriteAllBytes(outputCodePath.Replace("$KV$", version.Key), kf.CodeBlob);
 
@@ -206,6 +214,11 @@ namespace Kamek
                     {
                         dol.Write(outStream);
                     }
+                }
+
+                if (outputMapPath != null)
+                {
+                    linker.WriteSymbolMap(outputMapPath.Replace("$KV$", version.Key));
                 }
             }
         }
@@ -271,10 +284,14 @@ namespace Kamek
             Console.WriteLine("      write a Dolphin INI fragment (-static only)");
             Console.WriteLine("    -output-gecko=file.$KV$.xml");
             Console.WriteLine("      write a list of Gecko codes (-static only)");
+            Console.WriteLine("    -output-ar=file.$KV$.xml");
+            Console.WriteLine("      write a list of Action Replay codes (-static only)");
             Console.WriteLine("    -input-dol=file.$KV$.dol -output-dol=file2.$KV$.dol");
             Console.WriteLine("      apply these patches and generate a modified DOL (-static only)");
             Console.WriteLine("    -output-code=file.$KV$.bin");
             Console.WriteLine("      write the combined code+data segment to file.bin (for manual injection or debugging)");
+            Console.WriteLine("    -output-map=file.$KV$.map");
+            Console.WriteLine("      write a list of symbols and their relative offsets (for debugging)");
         }
     }
 }

@@ -36,10 +36,21 @@ namespace Kamek.Commands
             Address.Value.AssertAbsolute();
             Target.AssertAbsolute();
 
-            return string.Format("0x{0:X8}:dword:0x{1:X8}", Address.Value, GenerateInstruction());
+            return string.Format("0x{0:X8}:dword:0x{1:X8}", Address.Value.Value, GenerateInstruction());
         }
 
         public override IEnumerable<ulong> PackGeckoCodes()
+        {
+            Address.Value.AssertAbsolute();
+            Target.AssertAbsolute();
+
+            ulong code = ((ulong)(Address.Value.Value & 0x1FFFFFF) << 32) | GenerateInstruction();
+            code |= 0x4000000UL << 32;
+
+            return new ulong[1] { code };
+        }
+
+        public override IEnumerable<ulong> PackActionReplayCodes()
         {
             Address.Value.AssertAbsolute();
             Target.AssertAbsolute();
